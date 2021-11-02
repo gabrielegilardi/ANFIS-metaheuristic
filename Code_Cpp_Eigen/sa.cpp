@@ -28,10 +28,10 @@ IntVar          List of indexes specifying which variable should be treated
 seed            Seed for the random number generator
 
 === Dimensions ===
-(nVar, )        LB, UB, best_pos
+(nVar, 1)       LB, UB, best_pos
 (nPop, nVar)    LBe, UBe, LBe_orig, UBe_orig, sigma, agent_pos, neigh_pos, 
                 agent_pos_orig, neigh_pos_orig, rn, flips   
-(nPop, )        agent_cost, neigh_cost
+(nPop, 1)       agent_cost, neigh_cost
 (epochs)        F
 (0-nVar)        IntVar
 */

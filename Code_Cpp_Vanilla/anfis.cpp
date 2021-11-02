@@ -9,15 +9,15 @@ X           (n_inputs, n_samples)           Input dataset (training)
 Y           (n_outputs, n_samples)          Output dataset (training)
 Xp          (n_inputs, n_samples)           Input dataset (prediction)
 Yp          (n_labels, n_samples)           Output dataset (prediction)
-theta       (n_var, )                       Unrolled parameters
-mu          (n_pf, )                        Mean (premise MFs)
-s           (n_pf, )                        Standard deviation (premise MFs)
-c           (n_pf, )                        Exponent (premise MFs)
+theta       (n_var, 1)                      Unrolled parameters
+mu          (n_pf, 1)                       Mean (premise MFs)
+s           (n_pf, 1)                       Standard deviation (premise MFs)
+c           (n_pf, 1)                       Exponent (premise MFs)
 A           (n_inputs+1, n_cf*n_outputs)    Coefficients (consequent MFs)
-pf          (n_pf, )                        Premise MFs value
-W           (n_cf, )                        Firing strenght value
-Wr          (n_cf, )                        Firing strenght ratios
-cf          (n_cf, )                        Consequent MFs value
+pf          (n_pf, 1)                       Premise MFs value
+W           (n_cf, 1)                       Firing strenght value
+Wr          (n_cf, 1)                       Firing strenght ratios
+cf          (n_cf, 1)                       Consequent MFs value
 f           (n_outputs, n_samples)          ANFIS output
 combs       (n_inputs, n_cf)                Combinations of premise MFs
 

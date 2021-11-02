@@ -30,9 +30,9 @@ nIntVar         Number of variables that should be treated as integers
 seed            Seed for the random number generator
 
 === Dimensions ===
-(nVar, )        LB, UB, best_pos, sigma, LB_orig, UB_orig
+(nVar, 1)       LB, UB, best_pos, sigma, LB_orig, UB_orig
 (nPop, nVar)    agent_pos, neigh_pos, agent_pos_orig, neigh_pos_orig   
-(nPop, )        agent_cost, neigh_cost
+(nPop, 1)       agent_cost, neigh_cost
 (epochs)        F
 (0-nVar)        IntVar
 */
