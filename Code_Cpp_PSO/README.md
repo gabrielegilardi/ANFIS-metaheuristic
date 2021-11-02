@@ -1,4 +1,4 @@
-# Multivariate Regression and Classification Using an Adaptive Neuro-Fuzzy Inference System (Takagi-Sugeno) and Simulated Annealing Optimization
+# Multivariate Regression and Classification Using an Adaptive Neuro-Fuzzy Inference System (Takagi-Sugeno) and Particle Swarm Optimization
 
 Version using particle swarm optimization instead of simulated annealing optimization. **--> Not implemented yet**
 

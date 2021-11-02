@@ -1,4 +1,4 @@
-# Multivariate Regression and Classification Using an Adaptive Neuro-Fuzzy Inference System (Takagi-Sugeno) and Simulated Annealing Optimization
+# Multivariate Regression and Classification Using an Adaptive Neuro-Fuzzy Inference System (Takagi-Sugeno) and Metaheuristic Optimization
 
 There are three versions:
 
