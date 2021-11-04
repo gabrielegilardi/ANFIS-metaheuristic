@@ -9,7 +9,7 @@ Copyright (c) 2021 Gabriele Gilardi
 
 
 /* Returns an array of random numbers (uniform, double) */
-ArrayXXd rnd(uniform_real_distribution<double> dist, mt19937_64 generator,
+ArrayXXd rnd(uniform_real_distribution<double> dist, mt19937_64& generator,
              int nr, int nc)
 {
     ArrayXXd rn;
@@ -25,7 +25,7 @@ ArrayXXd rnd(uniform_real_distribution<double> dist, mt19937_64 generator,
 }
 
 /* Returns an array of random numbers (normal, double) */
-ArrayXXd rnd(normal_distribution<double> dist, mt19937_64 generator,
+ArrayXXd rnd(normal_distribution<double> dist, mt19937_64& generator,
              int nr, int nc)
 {
     ArrayXXd rn;

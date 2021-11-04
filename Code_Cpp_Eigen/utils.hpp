@@ -13,9 +13,9 @@ Copyright (c) 2021 Gabriele Gilardi
 using namespace std;
 using namespace Eigen;
 
-ArrayXXd rnd(uniform_real_distribution<double> dist, mt19937_64 generator,
+ArrayXXd rnd(uniform_real_distribution<double> dist, mt19937_64& generator,
              int nr=1, int nc=1);
-ArrayXXd rnd(normal_distribution<double> dist, mt19937_64 generator,
+ArrayXXd rnd(normal_distribution<double> dist, mt19937_64& generator,
              int nr=1, int nc=1);
 ArrayXi cumsum(ArrayXi X);
 ArrayXi cumprod(ArrayXi X);

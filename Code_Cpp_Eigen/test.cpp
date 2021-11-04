@@ -162,7 +162,7 @@ int main(int argc, char** argv)
     else if (example == "stock") {
         // Dataset: 3 features (inputs), 2 labels (outputs), 536 samples
         // ANFIS: layout of [2, 2, 2], 82 variables
-        // Predicted/actual correlation values: 0.918 (training), 0.909 (test)
+        // Predicted/actual correlation values: 0.918 (training), 0.914 (test)
         // https://archive.ics.uci.edu/ml/datasets/ISTANBUL+STOCK+EXCHANGE
         data_file = "stock_dataset.csv";
         MFs.setConstant(3, 2);
@@ -179,7 +179,7 @@ int main(int argc, char** argv)
     else if (example == "wine") {
         // Dataset: 2 features (inputs), 6 classes (outputs), 1599 samples
         // ANFIS: layout of [3, 2], 123 variables
-        // Predicted/actual accuracy values: 59.2% (training), 54.8% (test).
+        // Predicted/actual accuracy values: 59.1% (training), 55.6% (test).
         // https://archive.ics.uci.edu/ml/datasets/Wine+Quality
         data_file = "wine_dataset.csv";
         // MFs.resize(2);
@@ -195,7 +195,7 @@ int main(int argc, char** argv)
     else if (example == "pulsar") {
         // Dataset: 3 features (inputs), 2 classes (outputs), 17898 samples
         // ANFIS: layout of [3, 4, 2], 219 variables
-        // Predicted/actual accuracy values: 97.9% (training), 97.7% (test).
+        // Predicted/actual accuracy values: 97.7% (training), 97.3% (test).
         // https://archive.ics.uci.edu/ml/datasets/HTRU2
         data_file = "pulsar_dataset.csv";
         MFs.setZero(3);
