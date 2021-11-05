@@ -470,16 +470,15 @@ int* range(int a)
 }
 
 /* Returns a shuffled sequence of the indexes [0, nel-1] */
-int* shuffle(int nel, int seed=1234567890)
+int* shuffle(int nel, mt19937_64& gen)
 {
     // Init index sequence
     int* idx = range(nel);
 
     // Randomly swap two indexes
-    mt19937_64 generator(seed);
     for (int i=nel-1; i>0; i--) {
         uniform_int_distribution<int> unif(0, i);
-        swap(idx[i], idx[unif(generator)]);
+        swap(idx[i], idx[unif(gen)]);
     }
 
     return idx;

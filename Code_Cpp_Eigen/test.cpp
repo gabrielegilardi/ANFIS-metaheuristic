@@ -105,7 +105,6 @@ struct Parameters {
     double prob = 0.5;
     bool normalize = false;
     ArrayXi IntVar;
-    int seed = 1234567890;
 };
 
 /* Structure to pass the data to the ANFIS */
@@ -118,7 +117,7 @@ struct Arguments {
 
 /* Prototypes (local functions) */
 ArrayXd sa(ArrayXd (*func)(ArrayXXd, Arguments), ArrayXd LB, ArrayXd UB,
-           Parameters p, Arguments args);
+           Parameters p, Arguments args, mt19937_64& gen);
 ArrayXd interface(ArrayXXd theta, Arguments args) ;
 ArrayXXd read_data(string data_file, int& rows, int& cols, bool flip);
 void bounds(ArrayXXd X, ArrayXi MFs, int n_out, double mu_delta, double s_par[2],
@@ -136,6 +135,7 @@ int main(int argc, char** argv)
     double c_par[2] = {1.0, 3.0};
     double A_par[2] = {-10.0, 10.0};
     double tol = 1.e-5;
+    int seed = 1234567890;
 
     // Read example to run
     if (argc != 2) {
@@ -147,6 +147,7 @@ int main(int argc, char** argv)
     string data_file;
     ArrayXi MFs;
     Parameters p;
+    mt19937_64 gen(seed);
 
     // Single-label continuous problem example
     if (example == "plant") {
@@ -162,7 +163,7 @@ int main(int argc, char** argv)
     else if (example == "stock") {
         // Dataset: 3 features (inputs), 2 labels (outputs), 536 samples
         // ANFIS: layout of [2, 2, 2], 82 variables
-        // Predicted/actual correlation values: 0.918 (training), 0.914 (test)
+        // Predicted/actual correlation values: 0.918 (training), 0.912 (test)
         // https://archive.ics.uci.edu/ml/datasets/ISTANBUL+STOCK+EXCHANGE
         data_file = "stock_dataset.csv";
         MFs.setConstant(3, 2);
@@ -179,14 +180,15 @@ int main(int argc, char** argv)
     else if (example == "wine") {
         // Dataset: 2 features (inputs), 6 classes (outputs), 1599 samples
         // ANFIS: layout of [3, 2], 123 variables
-        // Predicted/actual accuracy values: 59.1% (training), 55.6% (test).
+        // Predicted/actual accuracy values: 58.2% (training), 56.7% (test).
         // https://archive.ics.uci.edu/ml/datasets/Wine+Quality
         data_file = "wine_dataset.csv";
         // MFs.resize(2);
         MFs.setZero(2);
         MFs << 3, 2;
         // Changed parameters
-        p.nMove = 10;
+        p.nMove = 20;
+        p.sigma0 = 0.05;
         p.T0 = 0.0;
         classification = true;
     }
@@ -195,7 +197,7 @@ int main(int argc, char** argv)
     else if (example == "pulsar") {
         // Dataset: 3 features (inputs), 2 classes (outputs), 17898 samples
         // ANFIS: layout of [3, 4, 2], 219 variables
-        // Predicted/actual accuracy values: 97.7% (training), 97.3% (test).
+        // Predicted/actual accuracy values: 97.6% (training), 97.4% (test).
         // https://archive.ics.uci.edu/ml/datasets/HTRU2
         data_file = "pulsar_dataset.csv";
         MFs.setZero(3);
@@ -220,7 +222,7 @@ int main(int argc, char** argv)
     int n_samples = n_rows;
 
     // Randomly shuffle the indexes and build the shuffled data matrix
-    ArrayXi idx_shuffle = shuffle(n_samples, p.seed);
+    ArrayXi idx_shuffle = shuffle(n_samples, gen);
     ArrayXXd data_shuffle = data(idx_shuffle, all);
 
     // For a classification problem build the class table (classes must always
@@ -329,7 +331,7 @@ int main(int argc, char** argv)
     // Solve
     ArrayXd (*func)(ArrayXXd, Arguments);
     func = interface;
-    ArrayXd best_sol = sa(func, LB, UB, p, args);
+    ArrayXd best_sol = sa(func, LB, UB, p, args, gen);
     delete[] agents;
 
     // Re-build the ANFIS with the best solution and evaluate datasets

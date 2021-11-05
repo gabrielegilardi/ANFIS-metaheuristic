@@ -64,7 +64,7 @@ There are four examples in *test.cpp*: plant, stock, wine, pulsar.
 
 - The ANFIS has a layout of [2, 2, 2] and 82 variables.
 
-- Predicted/actual correlation values: 0.918 (training), 0.909 (test).
+- Predicted/actual correlation values: 0.918 (training), 0.912 (test).
 
 - Original dataset: <https://archive.ics.uci.edu/ml/datasets/ISTANBUL+STOCK+EXCHANGE>.
 
@@ -74,7 +74,7 @@ There are four examples in *test.cpp*: plant, stock, wine, pulsar.
 
 - The ANFIS has a layout of [3, 2] and 123 variables.
 
-- Predicted/actual accuracy values: 59.2% (training), 54.8% (test).
+- Predicted/actual accuracy values: 58.2% (training), 56.7% (test).
 
 - Original dataset: <https://archive.ics.uci.edu/ml/datasets/Wine+Quality>.
 
@@ -84,7 +84,7 @@ There are four examples in *test.cpp*: plant, stock, wine, pulsar.
 
 - The ANFIS has a layout of [3, 4, 2] and 219 variables.
 
-- Predicted/actual accuracy values: 97.9% (training), 97.7% (test).
+- Predicted/actual accuracy values: 97.6% (training), 97.4% (test).
 
 - Original dataset: <https://archive.ics.uci.edu/ml/datasets/HTRU2>.
 

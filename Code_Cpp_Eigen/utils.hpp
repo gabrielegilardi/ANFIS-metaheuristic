@@ -25,7 +25,7 @@ double accuracy(ArrayXd A, ArrayXd B, double tol=1.e-5);
 double calc_corr(ArrayXd X, ArrayXd Y);
 ArrayXd normalize(ArrayXd X, double mu=0.0, double sigma=1.0);
 ArrayXd scale(ArrayXd X, double Xmin, double Xmax, double a=-1.0, double b=1.0);
-ArrayXi shuffle(int nel, int seed=1234567890);
+ArrayXi shuffle(int nel, mt19937_64& gen);
 VectorXd exact_sol(MatrixXd A, VectorXd b);
 
 #endif

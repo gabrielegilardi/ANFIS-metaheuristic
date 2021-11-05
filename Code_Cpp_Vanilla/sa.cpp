@@ -72,10 +72,9 @@ struct Arguments {
 
 /* Minimizes a function using simulated annealing */
 double* sa(double (*func)(double*, int, Arguments), double* LB, double* UB,
-           int nVar, Parameters p, Arguments args)
+           int nVar, Parameters p, Arguments args, mt19937_64& gen)
 {
     /* Random generator and probability distributions */
-    mt19937_64 generator(p.seed);
     uniform_real_distribution<double> unif(0.0, 1.0);
     normal_distribution<double> norm(0.0, 1.0);
 
@@ -116,7 +115,7 @@ double* sa(double (*func)(double*, int, Arguments), double* LB, double* UB,
     /* Initial position of each agent */
     for (int i=0; i<p.nPop; i++) {
         for (int j=0; j<nVar; j++) {
-            agent_pos[i][j] = LB[j] + unif(generator) * (UB[j] - LB[j]);
+            agent_pos[i][j] = LB[j] + unif(gen) * (UB[j] - LB[j]);
         }
     }
 
@@ -158,9 +157,9 @@ double* sa(double (*func)(double*, int, Arguments), double* LB, double* UB,
             /* Randomly create agent's neighbours */
             for (int i=0; i<p.nPop; i++) {
                 for (int j=0; j<nVar; j++) {
-                    if (unif(generator) <= p.prob) {
+                    if (unif(gen) <= p.prob) {
                         neigh_pos[i][j] = agent_pos[i][j] +
-                                          norm(generator) * sigma[j];
+                                          norm(gen) * sigma[j];
                     }
                     else {
                         neigh_pos[i][j] = agent_pos[i][j];
@@ -229,7 +228,7 @@ double* sa(double (*func)(double*, int, Arguments), double* LB, double* UB,
                     double prob_swap = exp(-delta / T);
 
                     /* Randomly swap states */
-                    if (unif(generator) <= prob_swap) {
+                    if (unif(gen) <= prob_swap) {
                         agent_cost[i] = neigh_cost[i];
                         copy_Array(agent_pos[i], nVar, neigh_pos[i]);
                     }

@@ -127,7 +127,7 @@ ArrayXd scale(ArrayXd X, double Xmin, double Xmax, double a, double b)
 }
 
 /* Returns a shuffled sequence of the indexes [0, nel-1] */
-ArrayXi shuffle(int nel, int seed)
+ArrayXi shuffle(int nel, mt19937_64& gen)
 {
     // Init index sequence
     ArrayXi idx;
@@ -137,10 +137,9 @@ ArrayXi shuffle(int nel, int seed)
     }
 
     // Randomly swap two indexes
-    mt19937_64 generator(seed);
     for (int i=nel-1; i>0; i--) {
         uniform_int_distribution<int> unif(0, i);
-        swap(idx[i], idx[unif(generator)]);
+        swap(idx[i], idx[unif(gen)]);
     }
 
     return idx;

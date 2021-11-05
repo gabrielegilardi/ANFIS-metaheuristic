@@ -91,7 +91,7 @@ References
 
 #include "utils.hpp"
 #include "ANFIS.hpp"
-#include "templates.hpp"          // Namespace "std" is in this file
+#include "templates.hpp"
 
 /* Structure to pass the parameters (and default values) to the SA solver */
 struct Parameters {
@@ -106,7 +106,6 @@ struct Parameters {
     bool normalize = false;
     int* IntVar = nullptr;
     int nIntVar = 0;
-    int seed = 1234567890;
 };
 
 /* Structure to pass the data to the ANFIS */
@@ -120,7 +119,7 @@ struct Arguments {
 
 /* Prototypes (local functions) */
 double* sa(double (*func)(double*, int, Arguments), double* LB, double* UB,
-           int nVar, Parameters p, Arguments args);
+           int nVar, Parameters p, Arguments args, mt19937_64& gen);
 double interface(double* theta, int idx, Arguments args) ;
 double** read_data(string data_file, int& rows, int& cols, bool flip);
 void bounds(double** X, int n_samples, int* MFs, int n_inputs, int n_outputs,
@@ -139,6 +138,7 @@ int main(int argc, char** argv)
     double c_par[2] = {1.0, 3.0};
     double A_par[2] = {-10.0, 10.0};
     double tol = 1.e-5;
+    int seed = 1234567890;
 
     // Read example to run
     if (argc != 2) {
@@ -151,12 +151,13 @@ int main(int argc, char** argv)
     int n_inputs;
     int* MFs;
     Parameters p;
+    mt19937_64 gen(seed);
 
     // Single-label continuous problem example
     if (example == "plant") {
         // Dataset: 4 features (inputs), 1 label (output), 9568 samples
         // ANFIS: layout of [1, 1, 1, 1], 17 variables
-        // Predicted/actual correlation values: 0.963 (training), 0.963 (test)
+        // Predicted/actual correlation values: 0.964 (training), 0.963 (test)
         // https://archive.ics.uci.edu/ml/datasets/Combined+Cycle+Power+Plant
         data_file = "plant_dataset.csv";
         n_inputs = 4;
@@ -168,7 +169,7 @@ int main(int argc, char** argv)
     else if (example == "stock") {
         // Dataset: 3 features (inputs), 2 labels (outputs), 536 samples
         // ANFIS: layout of [2, 2, 2], 82 variables
-        // Predicted/actual correlation values: 0.891 (training), 0.865 (test)
+        // Predicted/actual correlation values: 0.891 (training), 0.863 (test)
         // https://archive.ics.uci.edu/ml/datasets/ISTANBUL+STOCK+EXCHANGE
         data_file = "stock_dataset.csv";
         n_inputs = 3;
@@ -187,7 +188,7 @@ int main(int argc, char** argv)
     else if (example == "wine") {
         // Dataset: 2 features (inputs), 6 classes (outputs), 1599 samples
         // ANFIS: layout of [3, 2], 123 variables
-        // Predicted/actual accuracy values: 58.4% (training), 56.5% (test).
+        // Predicted/actual accuracy values: 55.7% (training), 55.8% (test).
         // https://archive.ics.uci.edu/ml/datasets/Wine+Quality
         data_file = "wine_dataset.csv";
         n_inputs = 2;
@@ -195,7 +196,8 @@ int main(int argc, char** argv)
         MFs[0] = 3;
         MFs[1] = 2;
         // Changed parameters
-        p.nMove = 10;
+        p.nMove = 20;
+        p.sigma0 = 0.05;
         p.T0 = 0.0;
         classification = true;
     }
@@ -204,7 +206,7 @@ int main(int argc, char** argv)
     else if (example == "pulsar") {
         // Dataset: 3 features (inputs), 2 classes (outputs), 17898 samples
         // ANFIS: layout of [3, 4, 2], 219 variables
-        // Predicted/actual accuracy values: 97.5% (training), 97.6% (test).
+        // Predicted/actual accuracy values: 97.7% (training), 97.9% (test).
         // https://archive.ics.uci.edu/ml/datasets/HTRU2
         data_file = "pulsar_dataset.csv";
         n_inputs = 3;
@@ -232,7 +234,7 @@ int main(int argc, char** argv)
     double** data = read_data(data_file, n_rows, n_samples, true);
 
     // Randomly shuffle the indexes and build the shuffled data matrix
-    int *idx_shuffle = shuffle(n_samples, p.seed);
+    int *idx_shuffle = shuffle(n_samples, gen);
     double** data_shuffle = new_Array<double>(n_rows, n_samples);
     for (int i=0; i<n_samples; i++) {
         for (int j=0; j<n_rows; j++) {
@@ -350,7 +352,7 @@ int main(int argc, char** argv)
     // Solve
     double (*func)(double[], int, Arguments);
     func = interface;
-    double* best_sol = sa(func, LB, UB, n_var, p, args);
+    double* best_sol = sa(func, LB, UB, n_var, p, args, gen);
 
     // Re-build the ANFIS with the best solution and evaluate datasets
     double J;

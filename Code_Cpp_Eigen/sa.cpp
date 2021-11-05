@@ -53,7 +53,6 @@ struct Parameters {
     double prob;
     bool normalize;
     ArrayXi IntVar;
-    int seed;
 };
 
 /* Structure to pass the data to the ANFIS */
@@ -67,10 +66,9 @@ struct Arguments {
 
 /* Minimize a function using simulated annealing */
 ArrayXd sa(ArrayXd (*func)(ArrayXXd, Arguments), ArrayXd LB, ArrayXd UB,
-           Parameters p, Arguments args)
+           Parameters p, Arguments args, mt19937_64& gen)
 {
     /* Random generator and probability distributions */
-    mt19937_64 generator(p.seed);
     uniform_real_distribution<double> unif(0.0, 1.0);
     normal_distribution<double> norm(0.0, 1.0);
 
@@ -95,7 +93,7 @@ ArrayXd sa(ArrayXd (*func)(ArrayXXd, Arguments), ArrayXd LB, ArrayXd UB,
     ArrayXXd sigma = p.sigma0 * (UBe - LBe);
 
     /* Initial position of each agent */
-    ArrayXXd rn = rnd(unif, generator, p.nPop, nVar);
+    ArrayXXd rn = rnd(unif, gen, p.nPop, nVar);
     ArrayXXd agent_pos = LBe + rn * (UBe - LBe);
 
     /* Correct for any integer variable */
@@ -128,11 +126,11 @@ ArrayXd sa(ArrayXd (*func)(ArrayXXd, Arguments), ArrayXd LB, ArrayXd UB,
         for (int move=0; move<p.nMove; move++) {
 
             /* Randomly decide in which dimension to search */
-            rn = rnd(unif, generator, p.nPop, nVar);
+            rn = rnd(unif, gen, p.nPop, nVar);
             ArrayXXd flips = (rn <= p.prob).cast<double>();
 
             /* Create each agent's neighbours */
-            rn = rnd(norm, generator, p.nPop, nVar);
+            rn = rnd(norm, gen, p.nPop, nVar);
             ArrayXXd neigh_pos = agent_pos + flips * rn * sigma;
 
             /* Correct for any integer variable */
@@ -178,7 +176,7 @@ ArrayXd sa(ArrayXd (*func)(ArrayXXd, Arguments), ArrayXd LB, ArrayXd UB,
                     double prob_swap = exp(-d / T);
 
                     /* Randomly swap states */
-                    if (unif(generator) <= prob_swap) {
+                    if (unif(gen) <= prob_swap) {
                         agent_cost(i) = neigh_cost(i);
                         agent_pos.row(i) = neigh_pos.row(i);
                     }

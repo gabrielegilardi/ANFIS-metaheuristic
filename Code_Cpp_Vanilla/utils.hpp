@@ -7,6 +7,10 @@ Copyright (c) 2021 Gabriele Gilardi
 #ifndef __UTILS_H_
 #define __UTILS_H_
 
+#include <random>
+
+using namespace std;
+
 double mean(double* X, int nel);
 double stdev(double* X, int nel, int ddof=0);
 double rmse(double* X, double* Y, int nel);
@@ -28,7 +32,7 @@ double A_det(double** A, int nel, double tol);
 double** MP_inv(double** A, int nr, int nc, double tol);
 int* range(int a, int b);
 int* range(int a);
-int* shuffle(int nel, int seed=1234567890);
+int* shuffle(int nel, mt19937_64& gen);
 
 #endif
  
