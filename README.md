@@ -6,7 +6,7 @@ There are three versions:
 
 - [Readme](./Code_Cpp_Eigen/README.md) for the Eigen version. All the basic array-matrix operations are managed by the Eigen library.
 
-- [Readme](./Code_Cpp_PSO/README.md) for the version using particle swarm optimization instead of simulated annealing optimization. **--> Not implemented yet**
+- [Readme](./Code_Cpp_PSO/README.md) for the version using particle swarm optimization instead of simulated annealing optimization.
 
 ## References
 
