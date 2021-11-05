@@ -48,7 +48,7 @@ See file *pso.cpp* for the meaning of the other quantities defined in structure 
 
 There are four examples in *test.cpp*: plant, stock, wine, pulsar.
 
-**plant** (single-label regression problem)
+**plant** (single-label regression problem):
 
 - The dataset has 4 features (inputs), 1 label (output), and 9568 samples.
 
@@ -58,7 +58,7 @@ There are four examples in *test.cpp*: plant, stock, wine, pulsar.
 
 - Original dataset: <https://archive.ics.uci.edu/ml/datasets/Combined+Cycle+Power+Plant>.
 
-**stock** (multi-label regression problem)
+**stock** (multi-label regression problem):
 
 - The dataset has 3 features (inputs), 2 labels (outputs), and 536 samples.
 
@@ -68,7 +68,7 @@ There are four examples in *test.cpp*: plant, stock, wine, pulsar.
 
 - Original dataset: <https://archive.ics.uci.edu/ml/datasets/ISTANBUL+STOCK+EXCHANGE>.
 
-**wine** (Multi-class classification problem)
+**wine** (multi-class classification problem):
 
 - The dataset has 2 features (inputs), 6 classes (outputs), and 1599 samples.
 
@@ -78,7 +78,7 @@ There are four examples in *test.cpp*: plant, stock, wine, pulsar.
 
 - Original dataset: <https://archive.ics.uci.edu/ml/datasets/Wine+Quality>.
 
-**pulsar** (Multi-class classification problem)
+**pulsar** (two-class classification problem):
 
 - The dataset has 3 features (inputs), 2 classes (outputs), and 17898 samples.
 
