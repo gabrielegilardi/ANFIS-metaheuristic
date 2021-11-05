@@ -6,13 +6,13 @@ There are three versions:
 
 - [Readme](./Code_Cpp_Eigen/README.md) for the Eigen version. All the basic array-matrix operations are managed by the Eigen library.
 
-- [Readme](./Code_Cpp_PSO/README.md) for the version using particle swarm optimization instead of simulated annealing optimization.
+- [Readme](./Code_Cpp_PSO/README.md) for the version using particle swarm optimization (and the Eigen library) instead of simulated annealing optimization.
 
 ## References
 
 - Mathematical background from [Neuro-Fuzzy and Soft Computing](https://ieeexplore.ieee.org/document/633847), by Jang, Sun, and Mizutani.
 
-- Datasets from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets.php)".
+- Datasets from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets.php).
 
 - [Git code](https://github.com/gabrielegilardi/ANFIS) for the Python version of the ANFIS.
 

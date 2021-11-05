@@ -92,7 +92,7 @@ There are four examples in *test.cpp*: plant, stock, wine, pulsar.
 
 - Mathematical background from [Neuro-Fuzzy and Soft Computing](https://ieeexplore.ieee.org/document/633847), by Jang, Sun, and Mizutani.
 
-- Datasets from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets.php)".
+- Datasets from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets.php).
 
 - [Git code](https://github.com/gabrielegilardi/ANFIS) for the Python version of the ANFIS.
 
