@@ -11,6 +11,7 @@ LB              Lower boundaries of the search space
 UB              Upper boundaries of the search space
 p               Structure with the solver parameters
 args            Structure with the ANFIS data
+gen             Random number generator
 
 === Solver parameters ===
 nPop            Number of agents (population)

@@ -62,8 +62,8 @@ tol > 0
 agents
     Array of agents used by the SA solver. Each agent is one ANFIS instance. 
 
-See https://github.com/gabrielegilardi/SimulatedAnnealing for the meaning of the
-other SA quantities defined in structure <Parameters>.
+See file "sa.cpp" for the meaning of the other quantities defined in structure
+<p>.
 
 Examples
 --------

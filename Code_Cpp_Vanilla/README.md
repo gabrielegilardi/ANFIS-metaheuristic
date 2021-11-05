@@ -42,7 +42,7 @@
 
 `agents` Array of agents used by the SA solver. Each agent is one ANFIS instance.
 
-See the file *sa.cpp* for the meaning of the other quantities defined in the structure `p`.
+See file *sa.cpp* for the meaning of the other quantities defined in structure `p`.
 
 ## Examples
 

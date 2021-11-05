@@ -1,14 +1,14 @@
 /*
 Multivariate Regression and Classification Using an Adaptive Neuro-Fuzzy
-Inference System (Takagi-Sugeno) and Simulated Annealing Optimization.
+Inference System (Takagi-Sugeno) and Particle Swarm Optimization.
 
 Copyright (c) 2021 Gabriele Gilardi
 
 
 Features
 --------
-- The code has been written in plain vanilla C++ and tested using g++ 11.2.0
-  in MinGW-W64 9.0.0-r1.
+- The code has been written in C++ using the Eigen library (ver. 3.4.0) and
+  tested using g++ 11.2.0 in MinGW-W64 9.0.0-r1.
 - Multi-input/multi-output (multivariate) adaptive neuro-fuzzy inference
   system (ANFIS) implementation for regression and classification.
 - Quadratic cost function for continuous problems and cross-entropy cost
@@ -20,14 +20,14 @@ Features
   deviation, and exponent) are used as premise membership functions.
 - Hyperplanes depending on the number of features are used as consequent
   functions.
-- A population-based simulated annealing optimizer (SA) is used to solve the
+- A population-based particle swarm optimizer (PSO) is used to solve the
   minimization problem.
 - Limits/constraints on the parameter values (similar to regularization in
-  neural networks) can be easily done through the SA boundary arrays.
-- The <ANFIS> class is not constrained to the SA solver but it can be easily
+  neural networks) can be easily done through the PSO boundary arrays.
+- The <ANFIS> class is not constrained to the PSO solver but it can be easily
   adapted to any other optimizer not gradient-based.
-- Files "utils.cpp" and "template.h" consist of several helper functions.
-- Included are also helper functions to build the SA boundary arrays and to
+- File "utils.cpp" consists of several helper functions.
+- Included are also helper functions to build the PSO boundary arrays and to
   build classes for classifications problems.
 - Usage: test.exe <example>.
 
@@ -62,7 +62,7 @@ tol > 0
 agents
     Array of agents used by the SA solver. Each agent is one ANFIS instance. 
 
-See file "sa.cpp" for the meaning of the other quantities defined in structure
+See file "pso.cpp" for the meaning of the other quantities defined in structure 
 <p>.
 
 Examples
@@ -81,50 +81,45 @@ References
 - Datasets from the UCI Machine Learning Repository
   @ https://archive.ics.uci.edu/ml/datasets.php
 
-- Population-Based Simulated Annealing Optimizer 
-  @ https://github.com/gabrielegilardi/SimulatedAnnealing
+- Population-Based Particle Swarm Optimizer 
+  @ https://github.com/gabrielegilardi/PSO
+
+- Eigen template library for linear algebra
+  @ https://eigen.tuxfamily.org
 */
 
 /* Headers */
-#include <cmath>
 #include <fstream>
-
 #include "utils.hpp"
 #include "ANFIS.hpp"
-#include "templates.hpp"
 
 /* Structure to pass the parameters (and default values) to the SA solver */
 struct Parameters {
-    int nPop = 20;
-    int epochs = 100;
-    int nMove = 50;
-    double T0 = 0.1;
-    double alphaT = 0.99;
-    double sigma0 = 0.1;
-    double alphaS = 0.98;
-    double prob = 0.5;
+    int nPop = 40;
+    int epochs = 500;
+    int K = 3;
+    double phi = 2.05;
+    double vel_fact = 0.5;
+    string conf_type = "RB";
     bool normalize = false;
-    int* IntVar = nullptr;
-    int nIntVar = 0;
+    ArrayXi IntVar;
 };
 
 /* Structure to pass the data to the ANFIS */
 struct Arguments {
-    double** X = nullptr;         // Training dataset inputs/features
-    double** Y = nullptr;         // Training dataset labels/outputs (regression)
-    int* Yc = nullptr;            // Training dataset classes (classification)
-    int n_samples;                // Number of samples training dataset
-    AnfisType* agents = nullptr;  // Array of ANFIS agents
+    ArrayXXd X;                 // Training dataset inputs/features
+    ArrayXXd Y;                 // Training dataset labels/outputs (regression)
+    ArrayXi Yc;                 // Training dataset classes (classification)
+    AnfisType* agents;          // Array of ANFIS agents
 };
 
 /* Prototypes (local functions) */
-double* sa(double (*func)(double*, int, Arguments), double* LB, double* UB,
-           int nVar, Parameters p, Arguments args, mt19937_64& gen);
-double interface(double* theta, int idx, Arguments args) ;
-double** read_data(string data_file, int& rows, int& cols, bool flip);
-void bounds(double** X, int n_samples, int* MFs, int n_inputs, int n_outputs,
-            double mu_delta, double s_par[2], double c_par[2], double A_par[2],
-            double*& LB, double*& UB);
+ArrayXd pso(ArrayXd (*func)(ArrayXXd, Arguments), ArrayXd LB, ArrayXd UB,
+            Parameters p, Arguments args, mt19937_64& gen);
+ArrayXd interface(ArrayXXd theta, Arguments args) ;
+ArrayXXd read_data(string data_file, int& rows, int& cols, bool flip);
+void bounds(ArrayXXd X, ArrayXi MFs, int n_out, double mu_delta, double s_par[2],
+            double c_par[2], double A_par[2], ArrayXd& LB, ArrayXd& UB);
 
 
 /* Main */
@@ -148,8 +143,7 @@ int main(int argc, char** argv)
     string example = argv[1];
 
     string data_file;
-    int n_inputs;
-    int* MFs;
+    ArrayXi MFs;
     Parameters p;
     mt19937_64 gen(seed);
 
@@ -157,29 +151,22 @@ int main(int argc, char** argv)
     if (example == "plant") {
         // Dataset: 4 features (inputs), 1 label (output), 9568 samples
         // ANFIS: layout of [1, 1, 1, 1], 17 variables
-        // Predicted/actual correlation values: 0.964 (training), 0.963 (test)
+        // Predicted/actual correlation values: 0.964 (training), 0.962 (test)
         // https://archive.ics.uci.edu/ml/datasets/Combined+Cycle+Power+Plant
         data_file = "plant_dataset.csv";
-        n_inputs = 4;
-        MFs = new_Array<int>(n_inputs);
-        set_Array(MFs, n_inputs, 1);
+        MFs.setOnes(4);
     }
 
     // Multi-label continuous problem example
     else if (example == "stock") {
         // Dataset: 3 features (inputs), 2 labels (outputs), 536 samples
         // ANFIS: layout of [2, 2, 2], 82 variables
-        // Predicted/actual correlation values: 0.891 (training), 0.863 (test)
+        // Predicted/actual correlation values: 0.913 (training), 0.923 (test)
         // https://archive.ics.uci.edu/ml/datasets/ISTANBUL+STOCK+EXCHANGE
         data_file = "stock_dataset.csv";
-        n_inputs = 3;
-        MFs = new_Array<int>(n_inputs);
-        set_Array(MFs, n_inputs, 2);
+        MFs.setConstant(3, 2);
         // Changed parameters
-        p.nPop = 40;
-        p.epochs = 500;
-        p.T0 = 0.0;
-        p.sigma0 = 0.05;
+        p.nPop = 100;
         A_par[0] = -1.0;
         A_par[1] = 1.0;
     }
@@ -188,17 +175,13 @@ int main(int argc, char** argv)
     else if (example == "wine") {
         // Dataset: 2 features (inputs), 6 classes (outputs), 1599 samples
         // ANFIS: layout of [3, 2], 123 variables
-        // Predicted/actual accuracy values: 55.7% (training), 55.8% (test).
+        // Predicted/actual accuracy values: 59.8% (training), 54.4% (test).
         // https://archive.ics.uci.edu/ml/datasets/Wine+Quality
         data_file = "wine_dataset.csv";
-        n_inputs = 2;
-        MFs = new_Array<int>(n_inputs);
-        MFs[0] = 3;
-        MFs[1] = 2;
+        // MFs.resize(2);
+        MFs.setZero(2);
+        MFs << 3, 2;
         // Changed parameters
-        p.nMove = 20;
-        p.sigma0 = 0.05;
-        p.T0 = 0.0;
         classification = true;
     }
 
@@ -206,18 +189,13 @@ int main(int argc, char** argv)
     else if (example == "pulsar") {
         // Dataset: 3 features (inputs), 2 classes (outputs), 17898 samples
         // ANFIS: layout of [3, 4, 2], 219 variables
-        // Predicted/actual accuracy values: 97.7% (training), 97.9% (test).
+        // Predicted/actual accuracy values: 97.9% (training), 97.7% (test).
         // https://archive.ics.uci.edu/ml/datasets/HTRU2
         data_file = "pulsar_dataset.csv";
-        n_inputs = 3;
-        MFs = new_Array<int>(n_inputs);
-        MFs[0] = 3;
-        MFs[1] = 4;
-        MFs[2] = 2;
+        MFs.setZero(3);
+        MFs << 3, 4, 2;
         // Changed parameters
-        p.nPop = 10;
-        p.epochs = 50;
-        p.nMove = 10;
+        p.epochs = 200;
         classification = true;
     }
 
@@ -228,105 +206,96 @@ int main(int argc, char** argv)
         exit(EXIT_FAILURE);
     }
 
-    // Read (comma-separated) data from a file (note: samples are along the
-    // columns, while inputs and outputs are along the rows)
-    int n_rows, n_samples;
-    double** data = read_data(data_file, n_rows, n_samples, true);
+    // Read (comma-separated) data from a file
+    int n_rows, n_cols;
+    ArrayXXd data = read_data(data_file, n_rows, n_cols, false);
+    int n_samples = n_rows;
 
     // Randomly shuffle the indexes and build the shuffled data matrix
-    int *idx_shuffle = shuffle(n_samples, gen);
-    double** data_shuffle = new_Array<double>(n_rows, n_samples);
-    for (int i=0; i<n_samples; i++) {
-        for (int j=0; j<n_rows; j++) {
-            data_shuffle[j][idx_shuffle[i]] = data[j][i]; 
-        }
-    }
+    ArrayXi idx_shuffle = shuffle(n_samples, gen);
+    ArrayXXd data_shuffle = data(idx_shuffle, all);
 
     // For a classification problem build the class table (classes must always
-    // be on the last row)
-    int n_classes, n_outputs;
-    double* table;
+    // be on the last column)
+    int n_classes, n_outputs, n_inputs;
+    n_inputs = MFs.size();
+    ArrayXd table;
     if (classification) {
-        table = build_class_table(data[n_rows-1], n_samples, n_classes, tol);
+        table = build_class_table(data.col(n_cols-1), tol);
+        n_classes = table.size();
         n_outputs = 1;
     }
 
-    // In a regression problem the outputs are always in the last rows
+    // In a regression problem the outputs are always in the last columns
     else {
-        n_outputs = n_rows - n_inputs;
+        n_classes = 0;
+        n_outputs = n_cols - n_inputs;
     }
 
     // Build the splitted datasets ( training dataset: 0 --> samples_tr-1,
     // test dataset: samples_tr --> n_samples-1)
     int samples_tr = int(nearbyint(split_factor * double(n_samples)));
     int samples_te = n_samples - samples_tr;
-    double** X_tr = new_Array<double>(n_inputs, samples_tr);
-    double** Y_tr = new_Array<double>(n_outputs, samples_tr);
-    double** X_te = new_Array<double>(n_inputs, samples_te);
-    double** Y_te = new_Array<double>(n_outputs, samples_te);
-    copy_Array(X_tr, n_inputs, samples_tr, data_shuffle, 0, 0);
-    copy_Array(Y_tr, n_outputs, samples_tr, data_shuffle, n_inputs, 0);
-    copy_Array(X_te, n_inputs, samples_te, data_shuffle, 0, samples_tr);
-    copy_Array(Y_te, n_outputs, samples_te, data_shuffle, n_inputs, samples_tr);
+    ArrayXXd X_tr = data_shuffle.topLeftCorner(samples_tr, n_inputs);
+    ArrayXXd Y_tr = data_shuffle.topRightCorner(samples_tr, n_outputs);
+    ArrayXXd X_te = data_shuffle.bottomLeftCorner(samples_te, n_inputs);
+    ArrayXXd Y_te = data_shuffle.bottomRightCorner(samples_te, n_outputs);
 
-    // Normalize inputs (rows) using the training dataset mean and std
-    double** Xn_tr = new_Array <double*>(n_inputs);
-    double** Xn_te = new_Array <double*>(n_inputs);
+    // Normalize inputs (cols) using the training dataset mean and std
+    ArrayXXd Xn_tr, Xn_te;
+    Xn_tr.setZero(samples_tr, n_inputs);
+    Xn_te.setZero(samples_te, n_inputs);
     for (int j=0; j<n_inputs; j++) {
-        double mu = mean(X_tr[j], samples_tr);
-        double sigma = stdev(X_tr[j], samples_tr);
-        Xn_tr[j] = normalize(X_tr[j], samples_tr, mu, sigma);
-        Xn_te[j] = normalize(X_te[j], samples_te, mu, sigma);
+        double mu = X_tr.col(j).mean();
+        double sigma = stdev(X_tr.col(j));
+        Xn_tr.col(j) = normalize(X_tr.col(j), mu, sigma);
+        Xn_te.col(j) = normalize(X_te.col(j), mu, sigma);
     }
 
     // For classification get the classes in the training dataset output (the
     // original classes are re-numbered 0 --> n_classes-1)
     int n_out;
-    int* Yc_tr;
-    double **Ys_tr, **Ys_te;
+    ArrayXi Yc_tr;
+    ArrayXXd Ys_tr, Ys_te;
     if (classification) {
-        Yc_tr = get_classes(Y_tr[0], samples_tr, table, n_classes, tol);
+        Yc_tr = get_classes(Y_tr.col(0), table, tol);
         n_out = n_classes;          // Actual number of outputs used by ANFIS
     }
 
     // For regression scale the outputs (rows) to the interval [-1, 1], to
     // reduce the range of <A> 
     else {
-        Ys_tr = new_Array <double*>(n_outputs);
-        Ys_te = new_Array <double*>(n_outputs);
+        Ys_tr.setZero(samples_tr, n_outputs);
+        Ys_te.setZero(samples_te, n_outputs);
         for (int j=0; j<n_outputs; j++) {
-            double Y_min = value_min(Y_tr[j], samples_tr);
-            double Y_max = value_max(Y_tr[j], samples_tr);
-            Ys_tr[j] = scale(Y_tr[j], samples_tr, Y_min, Y_max);
-            Ys_te[j] = scale(Y_te[j], samples_te, Y_min, Y_max);
+            double Ymin = Y_tr.col(j).minCoeff();
+            double Ymax = Y_tr.col(j).maxCoeff();
+            Ys_tr.col(j) = scale(Y_tr.col(j), Ymin, Ymax);
+            Ys_te.col(j) = scale(Y_te.col(j), Ymin, Ymax);
         }
         n_out = n_outputs;
     }
 
     // Init ANFIS agents
-    AnfisType* agents = new_Array<AnfisType>(p.nPop);
+    AnfisType* agents = new AnfisType [p.nPop];
     for (int i=0; i<p.nPop; i++) {
-        agents[i].init(n_inputs, n_out, MFs);
+        agents[i].init(MFs, n_out);
     }
 
     // Init arguments to be passed
     Arguments args;
     args.X = Xn_tr;
     if (classification) {
-        args.Y = nullptr;
         args.Yc = Yc_tr;
     }
     else {
         args.Y = Ys_tr;
-        args.Yc = nullptr;
     }
-    args.n_samples = samples_tr;
     args.agents = agents;
 
     // Init the SA search space boundaries (arrays LB and UB)
-    double *LB, *UB;
-    bounds(Xn_tr, samples_tr, MFs, n_inputs, n_out, mu_delta, s_par, c_par,
-           A_par, LB, UB);
+    ArrayXd LB, UB;
+    bounds(Xn_tr, MFs, n_out, mu_delta, s_par, c_par, A_par, LB, UB);
 
     // Show dataset info
     printf("\n\n===== Dataset info =====");
@@ -337,7 +306,7 @@ int main(int argc, char** argv)
         printf("\n- Number of classes: %d", n_classes);
         printf("\n- Class table:");
         for (int i=0; i<n_classes; i++) {
-            printf(" %g ", table[i]);
+            printf(" %g ", table(i));
         }
     }
     printf("\n- Training samples: %d", samples_tr);
@@ -350,78 +319,53 @@ int main(int argc, char** argv)
     int n_cf = agents[0].n_cf;          // Number of consequent functions
 
     // Solve
-    double (*func)(double[], int, Arguments);
+    ArrayXd (*func)(ArrayXXd, Arguments);
     func = interface;
-    double* best_sol = sa(func, LB, UB, n_var, p, args, gen);
+    ArrayXd best_sol = pso(func, LB, UB, p, args, gen);
+    delete[] agents;
 
     // Re-build the ANFIS with the best solution and evaluate datasets
     double J;
-    double **Yp_tr, **Yp_te;
+    ArrayXXd Yp_tr, Yp_te;
     AnfisType best_agent;
-    best_agent.init(n_inputs, n_out, MFs);
+    best_agent.init(MFs, n_out);
     if (classification) {
-        J = best_agent.create_model(best_sol, Xn_tr, Yc_tr, samples_tr);
-        Yp_tr = best_agent.eval_data(Xn_tr, samples_tr, table);
-        Yp_te = best_agent.eval_data(Xn_te, samples_te, table);
+        J = best_agent.create_model(best_sol, Xn_tr, Yc_tr);
+        Yp_tr = best_agent.eval_data(Xn_tr, table);
+        Yp_te = best_agent.eval_data(Xn_te, table);
     }
     else {
-        J = best_agent.create_model(best_sol, Xn_tr, Ys_tr, samples_tr);
-        Yp_tr = best_agent.eval_data(Xn_tr, samples_tr);
-        Yp_te = best_agent.eval_data(Xn_te, samples_te);
+        J = best_agent.create_model(best_sol, Xn_tr, Ys_tr);
+        Yp_tr = best_agent.eval_data(Xn_tr);
+        Yp_te = best_agent.eval_data(Xn_te);
     }
     // Show results
     printf("\n\n===== Results =====");
     printf("\nJ = %g", J);
     printf("\n\n    mu        c         s");
     for (int i=0; i<n_pf; i++) {
-        printf("\n%8.4f  %8.4f  %8.4f", best_agent.mu[i], best_agent.s[i],
-                                        best_agent.c[i]);
+        printf("\n%8.4f  %8.4f  %8.4f", best_agent.mu(i), best_agent.s(i),
+                                        best_agent.c(i));
     }
     printf("\n\nA");
     for (int i=0; i<n_inputs+1; i++) {
         printf("\n");
         for (int j=0; j<n_cf*n_out; j++) {
-            printf("%10.4f ", best_agent.A[i][j]);
+            printf("%10.4f ", best_agent.A(i, j));
         }
     }
     printf("\n\n\n===== Stats =====");
     if (classification) {
-        printf("\nAccuracy (tr) = %g", accuracy(Yp_tr, Y_tr, n_outputs, samples_tr));
-        printf("\nAccuracy (te) = %g", accuracy(Yp_te, Y_te, n_outputs, samples_te));
-        printf("\nCorrelation (tr) = %g", calc_corr(Yp_tr, Y_tr, n_outputs,samples_tr));
-        printf("\nCorrelation (te) = %g", calc_corr(Yp_te, Y_te, n_outputs, samples_te));
+        printf("\nAcc. (tr) = %g", accuracy(Yp_tr.reshaped(), Y_tr.reshaped()));
+        printf("\nAcc. (te) = %g", accuracy(Yp_te.reshaped(), Y_te.reshaped()));
+        printf("\nCorr. (tr) = %g", calc_corr(Yp_tr.reshaped(), Y_tr.reshaped()));
+        printf("\nCorr. (te) = %g", calc_corr(Yp_te.reshaped(), Y_te.reshaped()));
     }
     else {
-        printf("\nCorrelation (tr) = %g", calc_corr(Yp_tr, Ys_tr, n_outputs, samples_tr));
-        printf("\nCorrelation (te) = %g", calc_corr(Yp_te, Ys_te, n_outputs, samples_te));
-        printf("\nRMSE (tr) = %g", rmse(Yp_tr, Ys_tr, n_outputs, samples_tr));
-        printf("\nRMSE (te) = %g", rmse(Yp_te, Ys_te, n_outputs, samples_te));
-    }
-
-    // De-allocate all dynamic arrays and matrices
-    del_Array(MFs);
-    del_Array(idx_shuffle);
-    del_Array(data, n_rows);
-    del_Array(data_shuffle, n_rows);
-    del_Array(X_tr, n_inputs);
-    del_Array(X_te, n_inputs);
-    del_Array(LB);
-    del_Array(UB);
-    del_Array(best_sol);
-    del_Array(Y_tr, n_outputs);
-    del_Array(Y_te, n_outputs);
-    del_Array(Xn_tr, n_inputs);
-    del_Array(Xn_te, n_inputs);
-    del_Array(Yp_tr, n_outputs);
-    del_Array(Yp_te, n_outputs);
-    del_Array(agents);
-    if (classification) {
-        del_Array(table);
-        del_Array(Yc_tr);
-    }
-    else {
-        del_Array(Ys_tr, n_outputs);
-        del_Array(Ys_te, n_outputs);
+        printf("\nCorr. (tr) = %g", calc_corr(Yp_tr.reshaped(), Ys_tr.reshaped()));
+        printf("\nCorr. (te) = %g", calc_corr(Yp_te.reshaped(), Ys_te.reshaped()));
+        printf("\nRMSE (tr) = %g", rmse(Yp_tr.reshaped(), Ys_tr.reshaped()));
+        printf("\nRMSE (te) = %g", rmse(Yp_te.reshaped(), Ys_te.reshaped()));
     }
 
     printf("\n\n\n===== End =====\n\n");
@@ -431,18 +375,25 @@ int main(int argc, char** argv)
 
 
 /* Interface between the SA solver and the ANFIS */
-double interface(double *theta, int idx, Arguments args) 
+ArrayXd interface(ArrayXXd theta, Arguments args) 
 {
-    double J;
+    int n_agents = theta.rows();
+
+    ArrayXd J;
+    J.setZero(n_agents);
 
     // Classification problem
-    if (args.Yc != nullptr) {
-        J = args.agents[idx].create_model(theta, args.X, args.Yc, args.n_samples);
+    if (args.Yc.size() != 0) {
+        for (int i=0; i<n_agents; i++) {
+            J(i) = args.agents[i].create_model(theta.row(i), args.X, args.Yc);
+        }
     }
 
     // Regression problem
     else {
-        J = args.agents[idx].create_model(theta, args.X, args.Y, args.n_samples);
+        for (int i=0; i<n_agents; i++) {
+            J(i) = args.agents[i].create_model(theta.row(i), args.X, args.Y);
+        }
     }
 
     return J;
@@ -450,7 +401,7 @@ double interface(double *theta, int idx, Arguments args)
 
 
 /* Read (comma separated) data from a file */
-double **read_data(string data_file, int& nr, int& nc, bool flip)
+ArrayXXd read_data(string data_file, int& nr, int& nc, bool flip)
 {
 
     // Open file
@@ -462,7 +413,7 @@ double **read_data(string data_file, int& nr, int& nc, bool flip)
 
         string line;
         size_t pos;
-        double **data;
+        ArrayXXd data;
 
         // Read the first line and determine the number of columns
         int cols = 0;
@@ -499,15 +450,15 @@ double **read_data(string data_file, int& nr, int& nc, bool flip)
 
         // Read the data as they are
         if (!flip) {
-            data = new_Array<double>(rows, cols);
+            data.setZero(rows, cols);
             for (int i=0; i<rows; i++) {
                 getline(idf, line);
                 for (int j=0; j<cols-1; j++) {
                     pos = line.find(',');
-                    data[i][j] = stod(line.substr(0, pos));
+                    data(i, j) = stod(line.substr(0, pos));
                     line.erase(0, pos+1);
                 }
-                data[i][cols-1] = stod(line);
+                data(i, cols-1) = stod(line);
             }
             nr = rows;
             nc = cols;
@@ -515,15 +466,15 @@ double **read_data(string data_file, int& nr, int& nc, bool flip)
 
         // Read the data and flip the resulting matrix
         else {
-            data = new_Array<double>(cols, rows);
+            data.setZero(cols, rows);
             for (int i=0; i<rows; i++) {
                 getline(idf, line);
                 for (int j=0; j<cols-1; j++) {
                     pos = line.find(',');
-                    data[j][i] = stod(line.substr(0, pos));
+                    data(j, i) = stod(line.substr(0, pos));
                     line.erase(0, pos+1);
                 }
-                data[cols-1][i] = stod(line);
+                data(cols-1, i) = stod(line);
             }
             nr = cols;
             nc = rows;
@@ -562,53 +513,56 @@ Consequent parameters:
 - Coefficients (A) are given using a range, i.e. a min. value <A_par[0]>
   and a max. value <A_par[1]>.
 */
-void bounds(double** X, int n_samples, int* MFs, int n_inputs, int n_outputs,
-            double mu_delta, double s_par[2], double c_par[2], double A_par[2],
-            double*& LB, double*& UB) 
+void bounds(ArrayXXd X, ArrayXi MFs, int n_out, double mu_delta, double s_par[2],
+            double c_par[2], double A_par[2], ArrayXd& LB, ArrayXd& UB) 
 {
+    int n_inputs = MFs.size();
+    int n_samples = X.rows();
+
     // Anfis parameters
-    int n_pf = sum(MFs, n_inputs);
-    int n_cf = prod(MFs, n_inputs);
-    int n_var = 3 * n_pf + (n_inputs + 1) * n_cf * n_outputs;
-    LB = new_Array<double>(n_var);
-    UB = new_Array<double>(n_var);
+    int n_pf = MFs.sum();
+    int n_cf = MFs.prod();
+    int n_var = 3 * n_pf + (n_inputs + 1) * n_cf * n_out;
+    
+    LB.setZero(n_var);
+    UB.setZero(n_var);
 
     // Premise parameters (mu, s, c)
     int idx = 0;
     for (int j=0; j<n_inputs; j++) {
 
         // Feature (input) min, max, and range
-        double X_min = value_min(X[j], n_samples);
-        double X_max = value_max(X[j], n_samples);
-        double X_delta = X_max - X_min;
+        double Xmin = X.col(j).minCoeff();
+        double Xmax = X.col(j).maxCoeff();
+        double Xdelta = Xmax - Xmin;
 
         // Init parameters for mean and standard deviation 
-        double X_step, X_start, s;
-        if (MFs[j] == 1) {
-            X_step = 0.0;
-            X_start = (X_min + X_max) / 2.0;
+        double Xstep, Xstart, s;
+        if (MFs(j) == 1) {
+            Xstep = 0.0;
+            Xstart = (Xmin + Xmax) / 2.0;
             s = s_par[0];
         }
         else {
-            X_step = X_delta / static_cast<double>(MFs[j] - 1);
-            X_start = X_min;
-            s = s_par[0] * X_step;
+            Xstep = Xdelta / static_cast<double>(MFs(j) - 1);
+            Xstart = Xmin;
+            s = s_par[0] * Xstep;
         }
 
         // Assign values to the lower (LB) and higher (UB) boundary arrays
-        for (int k=0; k<MFs[j]; k++) {
-            double mu = X_start + X_step * static_cast<double>(k);
-            LB[idx] = mu - mu_delta * X_delta;          // mu lower limit
-            UB[idx] = mu + mu_delta * X_delta;          // mu upper limit
-            LB[n_pf+idx] = s - s_par[1];                // s lower limit
-            UB[n_pf+idx] = s + s_par[1];                // s upper limit
-            LB[2*n_pf+idx] = c_par[0];                  // c lower limit
-            UB[2*n_pf+idx] = c_par[1];                  // c upper limit
+        for (int k=0; k<MFs(j); k++) {
+            double mu = Xstart + Xstep * static_cast<double>(k);
+            LB(idx) = mu - mu_delta * Xdelta;          // mu lower limit
+            UB(idx) = mu + mu_delta * Xdelta;          // mu upper limit
+            LB(n_pf+idx) = s - s_par[1];                // s lower limit
+            UB(n_pf+idx) = s + s_par[1];                // s upper limit
+            LB(2*n_pf+idx) = c_par[0];                  // c lower limit
+            UB(2*n_pf+idx) = c_par[1];                  // c upper limit
             idx++;
         }
         for (int k=3*n_pf; k<n_var; k++) {
-            LB[k] = A_par[0];                           // A lower limit
-            UB[k] = A_par[1];                           // A upper limit
+            LB(k) = A_par[0];                           // A lower limit
+            UB(k) = A_par[1];                           // A upper limit
         }        
     }
 

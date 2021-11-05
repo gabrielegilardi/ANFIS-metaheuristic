@@ -12,6 +12,7 @@ UB              Upper boundaries of the search space
 nVar            Number of variables
 p               Structure with the solver parameters
 args            Structure with the ANFIS data
+gen             Random number generator
 
 === Solver parameters ===
 nPop            Number of agents (population)
